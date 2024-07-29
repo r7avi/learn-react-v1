@@ -108,8 +108,31 @@ const ChatWindow = ({ user, currentUser }) => {
     }
   }, [loadingMore, socket]);
 
+  // Function to format last login time
+  const formatLastLogin = (lastLogin) => {
+    if (!lastLogin) return 'Offline';
+
+    const now = new Date();
+    const lastLoginTime = new Date(lastLogin);
+    const diffInMs = now - lastLoginTime;
+    const diffInMinutes = Math.floor(diffInMs / 1000 / 60);
+    const diffInHours = Math.floor(diffInMinutes / 60);
+
+    if (diffInHours > 0) {
+      return `Online ${diffInHours}hr ago`;
+    } else if (diffInMinutes > 0) {
+      return `Online ${diffInMinutes}min ago`;
+    } else {
+      return 'Online just now';
+    }
+  };
+
   return (
     <div className="chat-window d-flex flex-column h-100">
+      <div className="chat-header d-flex align-items-center px-3 py-2 border-bottom">
+        <strong>{user.fullName}</strong>
+        <span className="ms-2 text-muted">{formatLastLogin(user.lastLogin)}</span>
+      </div>
       <div
         className="chat-history flex-grow-1 overflow-auto"
         ref={chatHistoryRef}

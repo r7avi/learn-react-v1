@@ -103,19 +103,10 @@ io.on("connection", (socket) => {
     socket.emit("initialMessages", messages.reverse()); // Reverse for proper order
   });
 
-  socket.on("loadMoreMessages", async ({ from, to, lastMessageId, limit }) => {
-    console.log('Loading more messages:', { from, to, lastMessageId, limit });
-    const moreMessages = await Message.find({
-      $or: [
-        { $and: [{ from }, { to }] },
-        { $and: [{ from: to }, { to: from }] },
-      ],
-      _id: { $lt: lastMessageId } // Fetch messages before the lastMessageId
-    }).sort({ timestamp: -1 }).limit(limit);
-    console.log('More messages:', moreMessages);
-    socket.emit("moreMessages", moreMessages.reverse()); // Reverse for proper order
-  });
+
 });
+
+
 
 // Start server
 const PORT = process.env.PORT || 5000;
