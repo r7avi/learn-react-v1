@@ -62,6 +62,11 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Update last login time
+    user.lastLogin = new Date();
+    await user.save();
+    
+    
     // Generate a JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -69,6 +74,7 @@ router.post('/login', async (req, res) => {
     res.status(200).json({
       token,
       fullName: user.fullName, // Include fullName in the response
+      lastLogin: user.lastLogin,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -93,6 +99,7 @@ router.get('/me', authMiddleware, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 
 module.exports = router;
