@@ -26,21 +26,28 @@ const Sidebar = ({ onSelectUser, currentUser }) => {
   // Function to format last login time
   const formatLastLogin = (lastLogin) => {
     if (!lastLogin) return 'Offline';
-
+  
     const now = new Date();
     const lastLoginTime = new Date(lastLogin);
+  
+    // Debugging information
+    console.log('Current time:', now);
+    console.log('Last login time:', lastLoginTime);
+  
     const diffInMs = now - lastLoginTime;
     const diffInMinutes = Math.floor(diffInMs / 1000 / 60);
     const diffInHours = Math.floor(diffInMinutes / 60);
-
-    if (diffInHours <= 1) {
-      return `Online ${diffInHours}hr ago`;
-    } else if (diffInHours > 1 && diffInHours <= 24) {
-      return `Online ${diffInHours}hr ago`;
-    } else if (diffInHours > 24) {
-      return `Offline`;
+    const diffInDays = Math.floor(diffInHours / 24);
+  
+    if (diffInMinutes < 60) {
+      // Less than an hour ago
+      return `Online ${diffInMinutes} min ago`;
+    } else if (diffInHours < 24) {
+      // Less than a day ago
+      return `Online ${diffInHours} hr ago`;
     } else {
-      return 'Online just now';
+      // More than a day ago
+      return `Online ${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
     }
   };
 
@@ -58,7 +65,7 @@ const Sidebar = ({ onSelectUser, currentUser }) => {
             onClick={() => onSelectUser(user)}
             title={formatLastLogin(user.lastLogin)}
           >
-            <a href="#" onClick={(e) => e.preventDefault()}>{user.fullName}</a>
+            <a href="/" onClick={(e) => e.preventDefault()}>{user.fullName}</a>
           </li>
         ))}
       </ul>

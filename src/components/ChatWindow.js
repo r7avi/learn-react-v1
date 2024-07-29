@@ -1,17 +1,31 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from '../context/SocketContext';
-import './ChatWindow.css'; // Import the CSS file
+import './ChatWindow.css';
 
 const ChatWindow = ({ user, currentUser }) => {
   const socket = useSocket();
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
-  const [loadingMore, setLoadingMore] = useState(false); // State to manage loading more messages
+  const [loadingMore, setLoadingMore] = useState(false);
   const chatHistoryRef = useRef(null);
-  const limit = 20; // Number of messages to load at a time
-  const lastMessageIdRef = useRef(null); // Ref to keep track of the last message ID
+  const limit = 20;
+  const lastMessageIdRef = useRef(null);
+  const audioRef = useRef(null);
 
-  // Load initial messages when the component mounts
+  useEffect(() => {
+    if (socket) {
+      socket.emit('setUser', currentUser.email); // Emit unique identifier
+
+      socket.on('userList', ({ online, all }) => {
+        // Handle user list updates
+      });
+
+      return () => {
+        socket.off('userList');
+      };
+    }
+  }, [socket, currentUser.email]);
+
   useEffect(() => {
     if (user && socket) {
       socket.emit('loadInitialMessages', { from: currentUser.email, to: user.email, limit });
@@ -19,7 +33,7 @@ const ChatWindow = ({ user, currentUser }) => {
       const handleInitialMessages = (initialMessages) => {
         if (initialMessages.length > 0) {
           const lastMessage = initialMessages[initialMessages.length - 1];
-          lastMessageIdRef.current = lastMessage._id; // Set the last message ID for pagination
+          lastMessageIdRef.current = lastMessage._id;
         }
         setMessages(initialMessages);
       };
@@ -32,11 +46,14 @@ const ChatWindow = ({ user, currentUser }) => {
     }
   }, [user, socket, currentUser.email]);
 
-  // Handle receiving messages in real-time
   useEffect(() => {
     if (socket) {
       const handleReceiveMessage = (message) => {
         setMessages((prevMessages) => [...prevMessages, message]);
+
+        if (audioRef.current) {
+          audioRef.current.play();
+        }
       };
 
       socket.on('receiveMessage', handleReceiveMessage);
@@ -47,7 +64,6 @@ const ChatWindow = ({ user, currentUser }) => {
     }
   }, [socket]);
 
-  // Handle loading more messages when scrolled to the top
   const handleScroll = useCallback(() => {
     const chatHistoryElement = chatHistoryRef.current;
     if (chatHistoryElement && chatHistoryElement.scrollTop === 0 && !loadingMore) {
@@ -75,7 +91,6 @@ const ChatWindow = ({ user, currentUser }) => {
   }, [handleScroll]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     const chatHistoryElement = chatHistoryRef.current;
     if (chatHistoryElement) {
       chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
@@ -108,24 +123,34 @@ const ChatWindow = ({ user, currentUser }) => {
     }
   }, [loadingMore, socket]);
 
-  // Function to format last login time
   const formatLastLogin = (lastLogin) => {
     if (!lastLogin) return 'Offline';
-
+  
     const now = new Date();
     const lastLoginTime = new Date(lastLogin);
+  
+    // Debugging information
+    console.log('Current time:', now);
+    console.log('Last login time:', lastLoginTime);
+  
     const diffInMs = now - lastLoginTime;
     const diffInMinutes = Math.floor(diffInMs / 1000 / 60);
     const diffInHours = Math.floor(diffInMinutes / 60);
-
-    if (diffInHours > 0) {
-      return `Online ${diffInHours}hr ago`;
-    } else if (diffInMinutes > 0) {
-      return `Online ${diffInMinutes}min ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+  
+    if (diffInMinutes < 60) {
+      // Less than an hour ago
+      return `Online ${diffInMinutes} min ago`;
+    } else if (diffInHours < 24) {
+      // Less than a day ago
+      return `Online ${diffInHours} hr ago`;
     } else {
-      return 'Online just now';
+      // More than a day ago
+      return `Online ${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
     }
   };
+  
+  
 
   return (
     <div className="chat-window d-flex flex-column h-100">
@@ -159,6 +184,8 @@ const ChatWindow = ({ user, currentUser }) => {
         />
         <button onClick={handleSend} className="btn btn-primary">Send</button>
       </div>
+
+      <audio ref={audioRef} src={`${process.env.PUBLIC_URL}/assets/message.mp3`} preload="auto" />
     </div>
   );
 };
