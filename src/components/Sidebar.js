@@ -39,7 +39,7 @@ const Sidebar = ({ onSelectUser, currentUser }) => {
           </li>
         ))}
       </ul>
-      <button className="btn btn-link">Show Contacts</button>
+    
     </div>
   );
 };

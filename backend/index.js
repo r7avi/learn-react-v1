@@ -1,5 +1,3 @@
-// backend/index.js
-
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const connectDB = require("./config/db");
@@ -7,7 +5,7 @@ const userRoutes = require("./routes/userRoutes");
 const noteRoutes = require("./routes/noteRoutes");
 const cors = require("cors");
 const User = require("./models/User");
-const Message = require("./models/Message"); // Import the Message model
+const Message = require("./models/Message");
 const http = require("http");
 const socketIo = require("socket.io");
 
@@ -75,12 +73,15 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendMessage", async ({ from, to, content }) => {
+    console.log('Received sendMessage event:', { from, to, content });
     const message = new Message({ from, to, content });
     await message.save();
     io.emit("receiveMessage", { from, to, content });
   });
 
+  // Fetch messages between two users
   socket.on("fetchMessages", async ({ from, to }) => {
+    console.log('Fetching messages between:', { from, to });
     const messages = await Message.find({
       $or: [
         { $and: [{ from }, { to }] },
@@ -88,6 +89,31 @@ io.on("connection", (socket) => {
       ],
     }).sort({ timestamp: 1 });
     socket.emit("messageHistory", messages);
+  });
+
+  socket.on("loadInitialMessages", async ({ from, to, limit }) => {
+    console.log('Loading initial messages:', { from, to, limit });
+    const messages = await Message.find({
+      $or: [
+        { $and: [{ from }, { to }] },
+        { $and: [{ from: to }, { to: from }] },
+      ],
+    }).sort({ timestamp: -1 }).limit(limit);
+    console.log('Initial messages:', messages);
+    socket.emit("initialMessages", messages.reverse()); // Reverse for proper order
+  });
+
+  socket.on("loadMoreMessages", async ({ from, to, lastMessageId, limit }) => {
+    console.log('Loading more messages:', { from, to, lastMessageId, limit });
+    const moreMessages = await Message.find({
+      $or: [
+        { $and: [{ from }, { to }] },
+        { $and: [{ from: to }, { to: from }] },
+      ],
+      _id: { $lt: lastMessageId } // Fetch messages before the lastMessageId
+    }).sort({ timestamp: -1 }).limit(limit);
+    console.log('More messages:', moreMessages);
+    socket.emit("moreMessages", moreMessages.reverse()); // Reverse for proper order
   });
 });
 

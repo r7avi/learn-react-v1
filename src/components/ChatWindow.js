@@ -1,4 +1,3 @@
-// components/ChatWindow.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from '../context/SocketContext';
 import './ChatWindow.css'; // Import the CSS file
@@ -7,8 +6,81 @@ const ChatWindow = ({ user, currentUser }) => {
   const socket = useSocket();
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
+  const [loadingMore, setLoadingMore] = useState(false); // State to manage loading more messages
   const chatHistoryRef = useRef(null);
-  const loadingMoreRef = useRef(false);
+  const limit = 20; // Number of messages to load at a time
+  const lastMessageIdRef = useRef(null); // Ref to keep track of the last message ID
+
+  // Load initial messages when the component mounts
+  useEffect(() => {
+    if (user && socket) {
+      socket.emit('loadInitialMessages', { from: currentUser.email, to: user.email, limit });
+
+      const handleInitialMessages = (initialMessages) => {
+        if (initialMessages.length > 0) {
+          const lastMessage = initialMessages[initialMessages.length - 1];
+          lastMessageIdRef.current = lastMessage._id; // Set the last message ID for pagination
+        }
+        setMessages(initialMessages);
+      };
+
+      socket.on('initialMessages', handleInitialMessages);
+
+      return () => {
+        socket.off('initialMessages', handleInitialMessages);
+      };
+    }
+  }, [user, socket, currentUser.email]);
+
+  // Handle receiving messages in real-time
+  useEffect(() => {
+    if (socket) {
+      const handleReceiveMessage = (message) => {
+        setMessages((prevMessages) => [...prevMessages, message]);
+      };
+
+      socket.on('receiveMessage', handleReceiveMessage);
+
+      return () => {
+        socket.off('receiveMessage', handleReceiveMessage);
+      };
+    }
+  }, [socket]);
+
+  // Handle loading more messages when scrolled to the top
+  const handleScroll = useCallback(() => {
+    const chatHistoryElement = chatHistoryRef.current;
+    if (chatHistoryElement && chatHistoryElement.scrollTop === 0 && !loadingMore) {
+      setLoadingMore(true);
+      socket.emit('loadMoreMessages', {
+        from: currentUser.email,
+        to: user.email,
+        lastMessageId: lastMessageIdRef.current,
+        limit,
+      });
+    }
+  }, [loadingMore, socket, currentUser.email, user.email]);
+
+  useEffect(() => {
+    const chatHistoryElement = chatHistoryRef.current;
+    if (chatHistoryElement) {
+      chatHistoryElement.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (chatHistoryElement) {
+        chatHistoryElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [handleScroll]);
+
+  useEffect(() => {
+    // Scroll to bottom when messages change
+    const chatHistoryElement = chatHistoryRef.current;
+    if (chatHistoryElement) {
+      chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
+    }
+  }, [messages]);
 
   const handleSend = useCallback(() => {
     if (message.trim()) {
@@ -18,66 +90,23 @@ const ChatWindow = ({ user, currentUser }) => {
     }
   }, [message, currentUser.email, user.email, socket]);
 
-  const loadMoreMessages = useCallback(() => {
-    if (loadingMoreRef.current) return; // Prevent multiple loads
-    loadingMoreRef.current = true;
-    socket.emit('loadMoreMessages', { from: currentUser.email, to: user.email });
-  }, [socket, currentUser.email, user.email]);
-
-  const handleScroll = useCallback(() => {
-    if (chatHistoryRef.current.scrollTop === 0) {
-      loadMoreMessages();
-    }
-  }, [loadMoreMessages]);
-
   useEffect(() => {
-    if (user && socket) {
-      socket.emit('fetchMessages', { from: currentUser.email, to: user.email });
-
-      const handleReceiveMessage = (msg) => {
-        setMessages(prevMessages => [...prevMessages, msg]);
+    if (loadingMore) {
+      const handleLoadMoreMessages = (moreMessages) => {
+        setMessages((prevMessages) => [...moreMessages, ...prevMessages]);
+        setLoadingMore(false);
+        if (moreMessages.length > 0) {
+          lastMessageIdRef.current = moreMessages[moreMessages.length - 1]._id;
+        }
       };
 
-      const handleMessageHistory = (history) => {
-        setMessages(history);
-      };
-
-      const handleMoreMessages = (moreMessages) => {
-        setMessages(prevMessages => [...moreMessages, ...prevMessages]);
-        loadingMoreRef.current = false;
-      };
-
-      socket.on('receiveMessage', handleReceiveMessage);
-      socket.on('messageHistory', handleMessageHistory);
-      socket.on('moreMessages', handleMoreMessages);
+      socket.on('moreMessages', handleLoadMoreMessages);
 
       return () => {
-        socket.off('receiveMessage', handleReceiveMessage);
-        socket.off('messageHistory', handleMessageHistory);
-        socket.off('moreMessages', handleMoreMessages);
+        socket.off('moreMessages', handleLoadMoreMessages);
       };
     }
-  }, [user, socket, currentUser.email]);
-
-  useEffect(() => {
-    const chatHistoryElement = chatHistoryRef.current;
-    if (chatHistoryElement) {
-      chatHistoryElement.addEventListener('scroll', handleScroll);
-    }
-    return () => {
-      if (chatHistoryElement) {
-        chatHistoryElement.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, [handleScroll]);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    const chatHistoryElement = chatHistoryRef.current;
-    if (chatHistoryElement) {
-      chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
-    }
-  }, [messages]);
+  }, [loadingMore, socket]);
 
   return (
     <div className="chat-window d-flex flex-column h-100">
@@ -97,15 +126,15 @@ const ChatWindow = ({ user, currentUser }) => {
           </div>
         ))}
       </div>
-      <div className="chat-input">
+      <div className="chat-input d-flex">
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message"
-          className="form-control"
+          className="form-control me-2"
         />
-        <button onClick={handleSend} className="btn btn-primary mt-2">Send</button>
+        <button onClick={handleSend} className="btn btn-primary">Send</button>
       </div>
     </div>
   );

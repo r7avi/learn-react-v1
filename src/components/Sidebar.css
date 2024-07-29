@@ -3,7 +3,6 @@
   background-color: #f8f9fa; /* Light background */
   border-right: 1px solid #dee2e6; /* Subtle border for separation */
   width: 250px; /* Fixed width for the sidebar */
-  height: 100vh; /* Full viewport height */
   overflow-y: auto; /* Scrollbar for overflow */
   padding: 20px; /* Padding around the content */
   display: flex;
