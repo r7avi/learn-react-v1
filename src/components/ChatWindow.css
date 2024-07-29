@@ -1,0 +1,58 @@
+/* components/ChatWindow.css */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-history {
+  flex-grow: 1;
+  overflow-y: auto; /* Enable vertical scrolling */
+  border: 1px solid #ddd;
+  padding: 10px;
+  width: 80%;
+}
+
+.chat-input {
+  border-top: 1px solid #ddd;
+  padding: 10px;
+  background-color: #f8f9fa;
+  width: 80%;
+}
+
+.message-bubble {
+  padding: 10px;
+  border-radius: 10px;
+  max-width: 75%;
+}
+
+.sent {
+  background-color: #e1ffc7;
+  align-self: flex-end;
+}
+
+.received {
+  background-color: #f1f0f0;
+  align-self: flex-start;
+}
+
+.message-bubble strong {
+  display: block;
+}
+
+.message-bubble p {
+  margin: 0;
+}
+
+.chat-history::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

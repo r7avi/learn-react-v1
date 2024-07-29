@@ -45,11 +45,17 @@ const Dashboard = () => {
 
   return (
     <SocketProvider>
-      <div className="dashboard">
-        <Sidebar onSelectUser={setSelectedUser} currentUser={currentUser} />
-        {selectedUser && (
-          <ChatWindow user={selectedUser} currentUser={currentUser} />
-        )}
+      <div className="container-fluid dashboard">
+        <div className="row">
+          <div className="col-md-3">
+            <Sidebar onSelectUser={setSelectedUser} currentUser={currentUser} />
+          </div>
+          <div className="col-md-9">
+            {selectedUser && (
+              <ChatWindow user={selectedUser} currentUser={currentUser} />
+            )}
+          </div>
+        </div>
       </div>
     </SocketProvider>
   );
