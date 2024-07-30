@@ -1,0 +1,10 @@
+/* src/components/Footer.css */
+.footer {
+  background-color: #000; /* Black background */
+  color: #fff; /* White text */
+  margin-top: 20px; /* 20px margin at the top */
+}
+
+.footer p {
+  margin: 0;
+}

@@ -1,7 +1,8 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import Footer from './components/Footer/Footer';
+import Navbar from './components/Header/Navbar';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
@@ -51,6 +52,7 @@ const App = () => {
           {/* Add more routes here as needed */}
         </Routes>
       </div>
+      <Footer /> 
     </Router>
   );
 };

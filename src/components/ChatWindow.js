@@ -200,6 +200,13 @@ const ChatWindow = ({ user, currentUser }) => {
     }
   }, [message, currentUser.email, user.email, socket]);
 
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault(); // Prevent newline in the input field
+      handleSend();
+    }
+  };
+
   const formatLastLogin = (lastLogin) => {
     if (!lastLogin) return "Offline";
 
@@ -264,6 +271,7 @@ const ChatWindow = ({ user, currentUser }) => {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message"
           className="form-control me-2"
+          onKeyDown={handleKeyDown} // Added onKeyDown event
         />
         <button onClick={handleSend} className="btn btn-primary">
           Send
