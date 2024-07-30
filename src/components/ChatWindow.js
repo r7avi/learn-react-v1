@@ -190,6 +190,13 @@ const ChatWindow = ({ user, currentUser }) => {
         { from: currentUser.email, content: message },
       ]);
       setMessage("");
+      
+      // Reset scrollTopRef and scroll to the bottom
+      scrollTopRef.current = 0;
+      const chatHistoryElement = chatHistoryRef.current;
+      if (chatHistoryElement) {
+        chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
+      }
     }
   }, [message, currentUser.email, user.email, socket]);
 
