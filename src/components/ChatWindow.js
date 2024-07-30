@@ -1,34 +1,40 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useSocket } from '../context/SocketContext';
-import './ChatWindow.css';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSocket } from "../context/SocketContext";
+import "./ChatWindow.css";
 
 const ChatWindow = ({ user, currentUser }) => {
   const socket = useSocket();
   const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [loadingMore, setLoadingMore] = useState(false);
   const chatHistoryRef = useRef(null);
   const limit = 20;
   const lastMessageIdRef = useRef(null);
   const audioRef = useRef(null);
+  const scrollTopRef = useRef(0);
+  const isAtBottomRef = useRef(true);
 
   useEffect(() => {
     if (socket) {
-      socket.emit('setUser', currentUser.email);
+      socket.emit("setUser", currentUser.email);
 
-      socket.on('userList', ({ online, all }) => {
+      socket.on("userList", ({ online, all }) => {
         // Handle user list updates
       });
 
       return () => {
-        socket.off('userList');
+        socket.off("userList");
       };
     }
   }, [socket, currentUser.email]);
 
   useEffect(() => {
     if (user && socket) {
-      socket.emit('loadInitialMessages', { from: currentUser.email, to: user.email, limit });
+      socket.emit("loadInitialMessages", {
+        from: currentUser.email,
+        to: user.email,
+        limit,
+      });
 
       const handleInitialMessages = (initialMessages) => {
         if (initialMessages.length > 0) {
@@ -38,10 +44,10 @@ const ChatWindow = ({ user, currentUser }) => {
         setMessages(initialMessages);
       };
 
-      socket.on('initialMessages', handleInitialMessages);
+      socket.on("initialMessages", handleInitialMessages);
 
       return () => {
-        socket.off('initialMessages', handleInitialMessages);
+        socket.off("initialMessages", handleInitialMessages);
       };
     }
   }, [user, socket, currentUser.email]);
@@ -51,41 +57,57 @@ const ChatWindow = ({ user, currentUser }) => {
       const handleReceiveMessage = (message) => {
         setMessages((prevMessages) => [...prevMessages, message]);
 
+        // Try to play sound only if the user interaction initiated it
         if (audioRef.current) {
-          audioRef.current.play();
+          audioRef.current.play().catch(error => {
+            console.error("Audio playback error:", error);
+          });
+        }
+
+        // Clear scrollTopRef and scroll to the bottom
+        scrollTopRef.current = 0; // Clear scroll position
+        const chatHistoryElement = chatHistoryRef.current;
+        if (chatHistoryElement) {
+          chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
         }
       };
 
-      socket.on('receiveMessage', handleReceiveMessage);
+      socket.on("receiveMessage", handleReceiveMessage);
 
       return () => {
-        socket.off('receiveMessage', handleReceiveMessage);
+        socket.off("receiveMessage", handleReceiveMessage);
       };
     }
   }, [socket]);
 
   const handleScroll = useCallback(() => {
     const chatHistoryElement = chatHistoryRef.current;
-    if (chatHistoryElement && chatHistoryElement.scrollTop === 0 && !loadingMore) {
-      setLoadingMore(true);
-      socket.emit('loadMoreMessages', {
-        from: currentUser.email,
-        to: user.email,
-        lastMessageId: lastMessageIdRef.current,
-        limit,
-      });
+    if (chatHistoryElement) {
+      if (chatHistoryElement.scrollTop === 0 && !loadingMore) {
+        setLoadingMore(true);
+        socket.emit("loadMoreMessages", {
+          from: currentUser.email,
+          to: user.email,
+          lastMessageId: lastMessageIdRef.current,
+          limit,
+        });
+      }
+      // Check if at bottom
+      isAtBottomRef.current =
+        chatHistoryElement.scrollHeight - chatHistoryElement.scrollTop ===
+        chatHistoryElement.clientHeight;
     }
   }, [loadingMore, socket, currentUser.email, user.email]);
 
   useEffect(() => {
     const chatHistoryElement = chatHistoryRef.current;
     if (chatHistoryElement) {
-      chatHistoryElement.addEventListener('scroll', handleScroll);
+      chatHistoryElement.addEventListener("scroll", handleScroll);
     }
 
     return () => {
       if (chatHistoryElement) {
-        chatHistoryElement.removeEventListener('scroll', handleScroll);
+        chatHistoryElement.removeEventListener("scroll", handleScroll);
       }
     };
   }, [handleScroll]);
@@ -93,17 +115,24 @@ const ChatWindow = ({ user, currentUser }) => {
   useEffect(() => {
     const chatHistoryElement = chatHistoryRef.current;
     if (chatHistoryElement) {
-      chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
+      if (isAtBottomRef.current) {
+        chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
+      } else {
+        // Restore scroll position if not at the bottom
+        chatHistoryElement.scrollTop =
+          chatHistoryElement.scrollHeight - scrollTopRef.current;
+      }
     }
   }, [messages]);
 
-  const handleSend = useCallback(() => {
-    if (message.trim()) {
-      socket.emit('sendMessage', { from: currentUser.email, to: user.email, content: message });
-      setMessages(prevMessages => [...prevMessages, { from: currentUser.email, content: message }]);
-      setMessage('');
+  useEffect(() => {
+    // Reset scrollTopRef and scroll to the bottom when user changes
+    scrollTopRef.current = 0;
+    const chatHistoryElement = chatHistoryRef.current;
+    if (chatHistoryElement) {
+      chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
     }
-  }, [message, currentUser.email, user.email, socket]);
+  }, [user.email]);
 
   useEffect(() => {
     if (loadingMore) {
@@ -114,33 +143,55 @@ const ChatWindow = ({ user, currentUser }) => {
         }
         setMessages((prevMessages) => [...moreMessages, ...prevMessages]);
         setLoadingMore(false);
+
+        // Preserve scroll position
+        const chatHistoryElement = chatHistoryRef.current;
+        if (chatHistoryElement) {
+          scrollTopRef.current =
+            chatHistoryElement.scrollHeight - chatHistoryElement.scrollTop;
+        }
       };
 
-      socket.on('moreMessages', handleLoadMoreMessages);
+      socket.on("moreMessages", handleLoadMoreMessages);
 
       return () => {
-        socket.off('moreMessages', handleLoadMoreMessages);
+        socket.off("moreMessages", handleLoadMoreMessages);
       };
     }
   }, [loadingMore, socket]);
 
+  const handleSend = useCallback(() => {
+    if (message.trim()) {
+      socket.emit("sendMessage", {
+        from: currentUser.email,
+        to: user.email,
+        content: message,
+      });
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { from: currentUser.email, content: message },
+      ]);
+      setMessage("");
+    }
+  }, [message, currentUser.email, user.email, socket]);
+
   const formatLastLogin = (lastLogin) => {
-    if (!lastLogin) return 'Offline';
-  
+    if (!lastLogin) return "Offline";
+
     const now = new Date();
     const lastLoginTime = new Date(lastLogin);
-  
+
     const diffInMs = now - lastLoginTime;
     const diffInMinutes = Math.floor(diffInMs / 1000 / 60);
     const diffInHours = Math.floor(diffInMinutes / 60);
     const diffInDays = Math.floor(diffInHours / 24);
-  
+
     if (diffInMinutes < 60) {
       return `Online ${diffInMinutes} min ago`;
     } else if (diffInHours < 24) {
       return `Online ${diffInHours} hr ago`;
     } else {
-      return `Online ${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+      return `Online ${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`;
     }
   };
 
@@ -148,7 +199,9 @@ const ChatWindow = ({ user, currentUser }) => {
     <div className="chat-window d-flex flex-column h-100">
       <div className="chat-header d-flex align-items-center px-3 py-2 border-bottom">
         <strong>{user.fullName}</strong>
-        <span className="ms-2 text-muted">{formatLastLogin(user.lastLogin)}</span>
+        <span className="ms-2 text-muted">
+          {formatLastLogin(user.lastLogin)}
+        </span>
       </div>
       <div
         className="chat-history flex-grow-1 overflow-auto"
@@ -157,10 +210,20 @@ const ChatWindow = ({ user, currentUser }) => {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`d-flex ${msg.from === currentUser.email ? 'justify-content-end' : 'justify-content-start'} mb-2`}
+            className={`d-flex ${
+              msg.from === currentUser.email
+                ? "justify-content-end"
+                : "justify-content-start"
+            } mb-2`}
           >
-            <div className={`message-bubble ${msg.from === currentUser.email ? 'sent' : 'received'}`}>
-              <strong>{msg.from === currentUser.email ? 'Me' : user.fullName}:</strong>
+            <div
+              className={`message-bubble ${
+                msg.from === currentUser.email ? "sent" : "received"
+              }`}
+            >
+              <strong>
+                {msg.from === currentUser.email ? "Me" : user.fullName}:
+              </strong>
               <p className="mb-0">{msg.content}</p>
             </div>
           </div>
@@ -174,10 +237,16 @@ const ChatWindow = ({ user, currentUser }) => {
           placeholder="Type a message"
           className="form-control me-2"
         />
-        <button onClick={handleSend} className="btn btn-primary">Send</button>
+        <button onClick={handleSend} className="btn btn-primary">
+          Send
+        </button>
       </div>
 
-      <audio ref={audioRef} src={`${process.env.PUBLIC_URL}/assets/message.mp3`} preload="auto" />
+      <audio
+        ref={audioRef}
+        src={`${process.env.PUBLIC_URL}/assets/message.mp3`}
+        preload="auto"
+      />
     </div>
   );
 };
