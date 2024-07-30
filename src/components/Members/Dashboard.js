@@ -1,9 +1,9 @@
 // pages/Dashboard.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Sidebar from '../components/Sidebar';
-import ChatWindow from '../components/ChatWindow';
-import { SocketProvider, useSocket } from '../context/SocketContext';
+import Sidebar from '../Chat/Sidebar';
+import ChatWindow from '../Chat/ChatWindow';
+import { SocketProvider, useSocket } from '../../context/SocketContext';
 
 const Dashboard = () => {
   const [currentUser, setCurrentUser] = useState(null);

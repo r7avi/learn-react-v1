@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useSocket } from "../context/SocketContext";
+import { useSocket } from "../../context/SocketContext";
+import { formatLastLogin, handleKeyDown } from "./ChatWindowUtils";
 import "./ChatWindow.css";
 
 const ChatWindow = ({ user, currentUser }) => {
@@ -61,7 +62,7 @@ const ChatWindow = ({ user, currentUser }) => {
 
         // Try to play sound only if the user interaction initiated it
         if (audioRef.current) {
-          audioRef.current.play().catch(error => {
+          audioRef.current.play().catch((error) => {
             console.error("Audio playback error:", error);
           });
         }
@@ -190,7 +191,7 @@ const ChatWindow = ({ user, currentUser }) => {
         { from: currentUser.email, content: message },
       ]);
       setMessage("");
-      
+
       // Reset scrollTopRef and scroll to the bottom
       scrollTopRef.current = 0;
       const chatHistoryElement = chatHistoryRef.current;
@@ -199,33 +200,6 @@ const ChatWindow = ({ user, currentUser }) => {
       }
     }
   }, [message, currentUser.email, user.email, socket]);
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault(); // Prevent newline in the input field
-      handleSend();
-    }
-  };
-
-  const formatLastLogin = (lastLogin) => {
-    if (!lastLogin) return "Offline";
-
-    const now = new Date();
-    const lastLoginTime = new Date(lastLogin);
-
-    const diffInMs = now - lastLoginTime;
-    const diffInMinutes = Math.floor(diffInMs / 1000 / 60);
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    if (diffInMinutes < 60) {
-      return `Online ${diffInMinutes} min ago`;
-    } else if (diffInHours < 24) {
-      return `Online ${diffInHours} hr ago`;
-    } else {
-      return `Online ${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`;
-    }
-  };
 
   return (
     <div className="chat-window d-flex flex-column h-100">
@@ -271,7 +245,7 @@ const ChatWindow = ({ user, currentUser }) => {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message"
           className="form-control me-2"
-          onKeyDown={handleKeyDown} // Added onKeyDown event
+          onKeyDown={(event) => handleKeyDown(event, handleSend)} // Updated to use imported handleKeyDown
         />
         <button onClick={handleSend} className="btn btn-primary">
           Send

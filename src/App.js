@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Footer from './components/Footer/Footer';
 import Navbar from './components/Header/Navbar';
-import Login from './components/Login';
-import Register from './components/Register';
-import Dashboard from './components/Dashboard';
+import Login from './components/Members/Login';
+import Register from './components/Members/Register';
+import Dashboard from './components/Members/Dashboard';
 import Home from './components/Home'; // Assuming you have a Home component
 import axios from 'axios';
 

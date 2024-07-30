@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSocket } from '../context/SocketContext';
+import { useSocket } from '../../context/SocketContext';
 import './Sidebar.css'; // Make sure to import the CSS
 
 const Sidebar = ({ onSelectUser, currentUser }) => {
