@@ -1,4 +1,4 @@
-/* components/Sidebar.css */
+/* Sidebar styles */
 .sidebar {
   background-color: #f8f9fa;
   border-right: 1px solid #dee2e6;
@@ -7,8 +7,15 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
+  transition: transform 0.3s ease, width 0.3s ease;
 }
 
+.sidebar.hidden {
+  transform: translateX(-100%);
+  width: 0; /* Collapse width to 0 */
+}
+
+/* Sidebar content styles */
 h4 {
   margin-top: 0;
   color: #343a40;
@@ -74,11 +81,22 @@ h4 {
   visibility: visible;
 }
 
+
+/* Responsive styles */
 @media (max-width: 768px) {
   .sidebar {
     width: 100%;
     height: auto;
     border-right: none;
     border-bottom: 1px solid #dee2e6;
+  }
+  
+  .sidebar.hidden {
+    width: 0; /* Collapse width to 0 */
+    display: none; /* Hide the sidebar */
+  }
+  
+  .back-button {
+    display: block;
   }
 }

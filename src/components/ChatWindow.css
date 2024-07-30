@@ -1,9 +1,11 @@
-/* ChatWindow.css */
 .chat-window {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  max-height: 500px;
+  height: 100vh; /* Use full viewport height */
+  border: 1px solid #dee2e6; /* Border around the chat window */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional shadow for a subtle 3D effect */
+  width: 100%; /* Default width for mobile devices */
+  box-sizing: border-box; /* Ensure padding is included in the width */
 }
 
 .chat-history {
@@ -12,7 +14,9 @@
   padding: 1rem;
   background-color: #ffffff;
   border-bottom: 1px solid #dee2e6;
-  max-width: 75%;
+  max-width: 100%; /* Adjust to full width */
+  /* Ensure scroll is visible */
+  height: calc(100vh - 80px); /* Adjust based on header and input height */
 }
 
 .message-bubble {
@@ -36,7 +40,10 @@
   padding: 0.5rem;
   background-color: #f1f3f5;
   border-top: 1px solid #dee2e6;
-  max-width: 75%;
+  position: sticky;
+  bottom: 0;
+  width: 100%; /* Full width on mobile */
+  box-sizing: border-box; /* Ensure padding is included in the width */
 }
 
 .chat-input input {
@@ -46,19 +53,38 @@
 
 @media (max-width: 767.98px) {
   .chat-window {
-    max-height: 100%;
+    max-height: calc(80vh - 10px); /* Full viewport height with margin adjustment */
+    margin-top: 20px; /* Top margin */
+    margin-bottom: 20px; /* Bottom margin */
+  }
+
+  .chat-history {
+    height: calc(100vh - 80px - 10px); /* Adjust height based on header and input height with margin adjustment */
   }
 
   .message-bubble {
     max-width: 100%;
   }
 }
+
+@media (min-width: 800px) {
+  .chat-window {
+    width: 75%; /* 75% width on larger screens */
+    margin: 0; /* Align to the left */
+    max-height: 550px; /* Use full viewport height */
+  }
+}
+
 .chat-header {
   background-color: #f8f9fa; /* Light background */
   border-bottom: 1px solid #dee2e6; /* Subtle border for separation */
   display: flex;
   align-items: center;
   padding: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10; /* Ensure it stays on top */
+  width: 100%; /* Full width on mobile */
 }
 
 .chat-header strong {
@@ -68,4 +94,11 @@
 .chat-header span {
   font-size: 0.875rem;
   color: #6c757d; /* Muted color for status text */
+}
+.loading-indicator {
+  display: inline-block;
+  padding: 0.5rem;
+  background-color: #f1f3f5;
+  border-radius: 0.5rem;
+  color: #6c757d;
 }

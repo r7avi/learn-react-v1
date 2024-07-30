@@ -7,12 +7,14 @@ const ChatWindow = ({ user, currentUser }) => {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false); // New state
   const chatHistoryRef = useRef(null);
   const limit = 20;
   const lastMessageIdRef = useRef(null);
   const audioRef = useRef(null);
   const scrollTopRef = useRef(0);
   const isAtBottomRef = useRef(true);
+  const loadingTimerRef = useRef(null);
 
   useEffect(() => {
     if (socket) {
@@ -84,14 +86,25 @@ const ChatWindow = ({ user, currentUser }) => {
     const chatHistoryElement = chatHistoryRef.current;
     if (chatHistoryElement) {
       if (chatHistoryElement.scrollTop === 0 && !loadingMore) {
-        setLoadingMore(true);
-        socket.emit("loadMoreMessages", {
-          from: currentUser.email,
-          to: user.email,
-          lastMessageId: lastMessageIdRef.current,
-          limit,
-        });
+        // Generate random delay between 2 to 5 seconds
+        const randomDelay = Math.floor(Math.random() * 2000) + 1000;
+
+        // Show loading indicator
+        setLoadingMessages(true);
+
+        // Set a timeout to hide the loading indicator after random delay
+        loadingTimerRef.current = setTimeout(() => {
+          setLoadingMessages(false);
+          setLoadingMore(true);
+          socket.emit("loadMoreMessages", {
+            from: currentUser.email,
+            to: user.email,
+            lastMessageId: lastMessageIdRef.current,
+            limit,
+          });
+        }, randomDelay);
       }
+
       // Check if at bottom
       isAtBottomRef.current =
         chatHistoryElement.scrollHeight - chatHistoryElement.scrollTop ===
@@ -108,6 +121,10 @@ const ChatWindow = ({ user, currentUser }) => {
     return () => {
       if (chatHistoryElement) {
         chatHistoryElement.removeEventListener("scroll", handleScroll);
+      }
+      // Clear timer on unmount
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
       }
     };
   }, [handleScroll]);
@@ -143,6 +160,7 @@ const ChatWindow = ({ user, currentUser }) => {
         }
         setMessages((prevMessages) => [...moreMessages, ...prevMessages]);
         setLoadingMore(false);
+        setLoadingMessages(false); // Reset loadingMessages to false
 
         // Preserve scroll position
         const chatHistoryElement = chatHistoryRef.current;
@@ -202,6 +220,9 @@ const ChatWindow = ({ user, currentUser }) => {
         <span className="ms-2 text-muted">
           {formatLastLogin(user.lastLogin)}
         </span>
+        {loadingMessages && (
+          <div className="loading-indicator ms-2">Loading...</div>
+        )}
       </div>
       <div
         className="chat-history flex-grow-1 overflow-auto"
