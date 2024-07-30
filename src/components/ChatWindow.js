@@ -14,7 +14,7 @@ const ChatWindow = ({ user, currentUser }) => {
 
   useEffect(() => {
     if (socket) {
-      socket.emit('setUser', currentUser.email); // Emit unique identifier
+      socket.emit('setUser', currentUser.email);
 
       socket.on('userList', ({ online, all }) => {
         // Handle user list updates
@@ -32,7 +32,7 @@ const ChatWindow = ({ user, currentUser }) => {
 
       const handleInitialMessages = (initialMessages) => {
         if (initialMessages.length > 0) {
-          const lastMessage = initialMessages[initialMessages.length - 1];
+          const lastMessage = initialMessages[0]; // First message in reversed array
           lastMessageIdRef.current = lastMessage._id;
         }
         setMessages(initialMessages);
@@ -108,11 +108,12 @@ const ChatWindow = ({ user, currentUser }) => {
   useEffect(() => {
     if (loadingMore) {
       const handleLoadMoreMessages = (moreMessages) => {
+        if (moreMessages.length > 0) {
+          const lastMessage = moreMessages[0]; // First message in reversed array
+          lastMessageIdRef.current = lastMessage._id;
+        }
         setMessages((prevMessages) => [...moreMessages, ...prevMessages]);
         setLoadingMore(false);
-        if (moreMessages.length > 0) {
-          lastMessageIdRef.current = moreMessages[moreMessages.length - 1]._id;
-        }
       };
 
       socket.on('moreMessages', handleLoadMoreMessages);
@@ -129,28 +130,19 @@ const ChatWindow = ({ user, currentUser }) => {
     const now = new Date();
     const lastLoginTime = new Date(lastLogin);
   
-    // Debugging information
-    console.log('Current time:', now);
-    console.log('Last login time:', lastLoginTime);
-  
     const diffInMs = now - lastLoginTime;
     const diffInMinutes = Math.floor(diffInMs / 1000 / 60);
     const diffInHours = Math.floor(diffInMinutes / 60);
     const diffInDays = Math.floor(diffInHours / 24);
   
     if (diffInMinutes < 60) {
-      // Less than an hour ago
       return `Online ${diffInMinutes} min ago`;
     } else if (diffInHours < 24) {
-      // Less than a day ago
       return `Online ${diffInHours} hr ago`;
     } else {
-      // More than a day ago
       return `Online ${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
     }
   };
-  
-  
 
   return (
     <div className="chat-window d-flex flex-column h-100">

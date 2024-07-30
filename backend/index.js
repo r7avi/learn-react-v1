@@ -10,8 +10,6 @@ const http = require("http");
 const socketIo = require("socket.io");
 
 const app = express();
-
-// Create an HTTP server and attach Socket.io to it
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
@@ -21,7 +19,6 @@ const io = socketIo(server, {
   },
 });
 
-// Middleware setup
 app.use(
   cors({
     origin: "*", // Update this for security in production
@@ -30,17 +27,11 @@ app.use(
   })
 );
 
-// Connect to MongoDB
 connectDB();
-
-// Middleware to parse JSON
 app.use(express.json());
-
-// Use routes
 app.use("/api/users", userRoutes);
 app.use("/api/notes", noteRoutes);
 
-// Socket.io Setup
 const users = {}; // Track online users with their socket IDs
 
 io.on("connection", (socket) => {
@@ -55,14 +46,16 @@ io.on("connection", (socket) => {
       console.error(err);
     });
 
-  socket.on("setUser", (username) => {
-    users[socket.id] = username;
+  // Set the user when they connect
+  socket.on("setUser", (userId) => {
+    users[socket.id] = userId;
     io.emit("userList", {
       online: Object.values(users),
       all: Object.values(users),
     });
   });
 
+  // Handle user disconnection
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
     delete users[socket.id];
@@ -72,9 +65,10 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("sendMessage", async ({ from, to, content, chatId }) => {
-    console.log('Received sendMessage event:', { from, to, content, chatId });
-    const message = new Message({ from, to, content, chatId });
+  // Handle sending messages
+  socket.on("sendMessage", async ({ from, to, content }) => {
+    console.log('Received sendMessage event:', { from, to, content });
+    const message = new Message({ from, to, content });
     await message.save();
     
     // Get the socket ID of the recipient
@@ -83,48 +77,51 @@ io.on("connection", (socket) => {
     );
 
     if (recipientSocketId) {
-      io.to(recipientSocketId).emit("receiveMessage", { from, to, content, chatId });
+      io.to(recipientSocketId).emit("receiveMessage", { from, to, content });
     } else {
       console.log(`Recipient ${to} is not connected`);
     }
   });
 
   // Fetch messages between two users
-  socket.on("fetchMessages", async ({ from, to, chatId }) => {
-    console.log('Fetching messages between:', { from, to, chatId });
+  socket.on("fetchMessages", async ({ from, to }) => {
+    console.log('Fetching messages between:', { from, to });
     const messages = await Message.find({
       $or: [
-        { $and: [{ from }, { to }, { chatId }] },
-        { $and: [{ from: to }, { to: from }, { chatId }] },
+        { $and: [{ from }, { to }] },
+        { $and: [{ from: to }, { to: from }] },
       ],
     }).sort({ timestamp: 1 });
     socket.emit("messageHistory", messages);
   });
 
-  socket.on("loadInitialMessages", async ({ from, to, limit, chatId }) => {
-    console.log('Loading initial messages:', { from, to, limit, chatId });
+  // Load initial messages
+  socket.on("loadInitialMessages", async ({ from, to, limit }) => {
+    console.log('Loading initial messages:', { from, to, limit });
     const messages = await Message.find({
       $or: [
-        { $and: [{ from }, { to }, { chatId }] },
-        { $and: [{ from: to }, { to: from }, { chatId }] },
+        { $and: [{ from }, { to }] },
+        { $and: [{ from: to }, { to: from }] },
       ],
     }).sort({ timestamp: -1 }).limit(limit);
     console.log('Initial messages:', messages);
     socket.emit("initialMessages", messages.reverse()); // Reverse for proper order
   });
 
-  socket.on("loadMoreMessages", async ({ from, to, lastMessageId, limit, chatId }) => {
-    console.log('Loading more messages:', { from, to, lastMessageId, limit, chatId });
-    const messages = await Message.find({
-      $or: [
-        { $and: [{ from }, { to }, { chatId }] },
-        { $and: [{ from: to }, { to: from }, { chatId }] },
-      ],
-      _id: { $lt: lastMessageId }
-    }).sort({ timestamp: -1 }).limit(limit);
-    console.log('More messages:', messages);
-    socket.emit("moreMessages", messages.reverse()); // Reverse for proper order
-  });
+  // Load more messages
+socket.on("loadMoreMessages", async ({ from, to, lastMessageId, limit }) => {
+  console.log('Loading more messages:', { from, to, lastMessageId, limit });
+  const messages = await Message.find({
+    $or: [
+      { $and: [{ from }, { to }] },
+      { $and: [{ from: to }, { to: from }] },
+    ],
+    _id: { $lt: lastMessageId }
+  }).sort({ _id: -1 }).limit(limit);
+  console.log('More messages:', messages);
+  socket.emit("moreMessages", messages.reverse()); // Reverse for proper order
+});
+
 });
 
 // Start server
